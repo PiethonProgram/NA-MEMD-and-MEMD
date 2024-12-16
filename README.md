@@ -2,7 +2,7 @@
 
 
 ## Introduction
-Python implementation of Noise-Assisted Multivariate Empirical Mode Decomposition (NA-MEMD). This repository contains functions for noise generation, multivariate empirical mode breakdown (MEMD), visualization, etc.  
+Python implementation of Noise-Assisted Multivariate Empirical Mode Decomposition (NA-MEMD). This repository contains functions for noise generation, Multivariate Empirical Mode Decomposition (MEMD), visualization, etc.  
 
 Multivariate Empirical Mode Decomposition (MEMD) is an extension of the traditional Empirical Mode Decomposition (EMD) method, which is used to decompose non-linear and non-stationary signals into simpler oscillatory components known as Intrinsic Mode Functions (IMFs). The key feature of MEMD is its ability to handle multivariate signals, meaning it can simultaneously decompose multiple related signals (or different dimensions of a signal) while ensuring that the decomposition is consistent across all channels.
 
