@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
-- family-names: "Zhu"
-  given-names: "Ethan"
+- family-names: " Zhu "
+  given-names: " Ethan "
   orcid: "https://orcid.org/0009-0007-6828-5558"
 title: "NA-MEMD for Python"
 version: 1.0.0
