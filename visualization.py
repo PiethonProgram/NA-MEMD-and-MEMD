@@ -3,6 +3,19 @@ import numpy as np
 
 
 def vis_imfs(imfs, num_samples=500):
+    """
+        Visualizes the Intrinsic Mode Functions (IMFs) for each channel.
+
+        Parameters:
+          imfs (numpy.ndarray): A 3D array of shape (num_channels, num_imfs, num_data_points)
+                                containing the IMFs for each channel.
+          num_samples (int): The number of samples to display for each IMF.
+                             Defaults to 500. If None or if greater than the available data points,
+                             the full signal is plotted.
+
+        Displays:
+          A matplotlib figure with subplots arranged with channels as rows and IMFs as columns.
+    """
     num_channels, num_imfs, num_data_points = imfs.shape
 
     if num_samples is None or num_samples > num_data_points:
@@ -34,6 +47,16 @@ def vis_imfs(imfs, num_samples=500):
 
 
 def vis_signal(signal):
+    """
+        Visualizes the original multi-channel signal.
+
+        Parameters:
+          signal (numpy.ndarray): A 2D array of shape (num_channels, num_data_points)
+                                  representing the original signal for each channel.
+
+        Displays:
+          A single matplotlib plot overlaying each channel of the signal.
+    """
     fig, ax = plt.subplots(figsize=(10, 6))
     num_channels, num_data_points = signal.shape
     t = np.arange(num_data_points)

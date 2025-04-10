@@ -1,10 +1,27 @@
 import numpy as np
-from scipy.interpolate import interp1d, CubicSpline
+from scipy.interpolate import CubicSpline
+# from scipy.interpolate import interp1d
 from math import pi, sqrt, sin, cos
 import sys
 
 
 def nth_prime(nth):
+    """
+       Computes the first nth prime numbers.
+
+       For small nth (<= 5), returns a predefined list of primes.
+       For larger nth, uses a sieve method based on an upper-limit estimate
+       (derived from the prime number theorem).
+
+       Parameters:
+         nth (int): The number of prime numbers to generate. Must be >= 1.
+
+       Returns:
+         numpy.ndarray: An array containing the first nth prime numbers.
+
+       Raises:
+         ValueError: If nth is less than 1.
+   """
     if nth > 0:
         if nth <= 5:    # call corner cases
             return small_primes(nth)
@@ -16,12 +33,32 @@ def nth_prime(nth):
 
 
 def small_primes(nth):      # corner cases for nth prime estimation using log
-    list_prime = np.array([2, 3, 5, 7, 11])
+    """
+        Returns the first nth prime numbers from a predefined list.
 
+        Parameters:
+          nth (int): Number of primes to return.
+
+        Returns:
+          numpy.ndarray: Array containing the first nth primes.
+    """
+    list_prime = np.array([2, 3, 5, 7, 11])
     return list_prime[:nth]
 
 
 def large_primes(nth):
+    """
+        Generates the first nth prime numbers using a sieve algorithm.
+
+        Estimates an upper limit based on the prime number theorem and then creates
+        a sieve for numbers of the form 6k±1 to efficiently filter out non-prime numbers.
+
+        Parameters:
+          nth (int): Number of primes to generate.
+
+        Returns:
+          numpy.ndarray: Array containing the primes.
+    """
     # https://stackoverflow.com/questions/2068372/fastest-way-to-list-all-primes-below-n/3035188#3035188
     lim = int(nth * (np.log(nth) + np.log(np.log(nth)))) + 1
     sieve = np.ones(lim // 3 + (lim % 6 == 2), dtype=bool)
@@ -35,6 +72,20 @@ def large_primes(nth):
 
 
 def hamm(n, base):
+    """
+        Generates a Hammersley sequence of length n with a given base.
+
+        The Hammersley sequence is used for quasi-random sampling. For base > 1, the function
+        iteratively computes the digits of each number in the given base. For base <= 1, a mirrored
+        approach is used.
+
+        Parameters:
+          n (int): Length of the sequence.
+          base (int): The base used for generating the digits.
+
+        Returns:
+          numpy.ndarray: Generated Hammersley sequence.
+    """
     sequence = np.zeros(n)
     if base > 1:    # generate initial seed and calculate inverse
         seed = np.arange(1, n + 1)
@@ -54,6 +105,31 @@ def hamm(n, base):
 
 
 def stop(mode, t_array, sd, sd2, tol, seq, ndir, N, N_dim):     # Stop criterion using Standard Deviation
+    """
+        Determines the stop criterion for the sifting process using standard deviation.
+
+        This function computes the envelope mean of the current mode (via envelope_mean) and
+        calculates a normalized measure sx. It then assesses whether the envelope variation and
+        the number of extrema satisfy the stopping thresholds.
+
+        Parameters:
+          mode (numpy.ndarray): The current mode signal.
+          t_array (numpy.ndarray): Array of time indices.
+          sd (float): Threshold for the first standard deviation criterion.
+          sd2 (float): Secondary threshold criterion.
+          tol (float): Tolerance value for the proportion of points exceeding sd.
+          seq (numpy.ndarray): Hammersley sequence used for envelope estimation.
+          ndir (int): Number of directions (projections) for the envelope computation.
+          N (int): Total number of data points.
+          N_dim (int): Dimensionality (number of channels) of the signal.
+
+        Returns:
+          tuple: (stp, env_mean)
+            stp (bool): True if the stopping condition is met.
+            env_mean (numpy.ndarray): The computed envelope mean.
+
+        In case of an exception, returns default values.
+    """
     try:
         env_mean, nem, nzm, amp = envelope_mean(mode, t_array, seq, ndir, N, N_dim)  # envelope mean call
         sx = np.sqrt(np.sum(env_mean ** 2, axis=1))     # sum of squares
@@ -74,6 +150,31 @@ def stop(mode, t_array, sd, sd2, tol, seq, ndir, N, N_dim):     # Stop criterion
 
 
 def fix(m, t, seq, ndir, stp_cnt, counter, N, N_dim):   # Stopping criterion based on number of iterations
+    """
+        Applies a fixed-number-of-iterations stopping criterion.
+
+        This function computes the envelope mean and checks the absolute difference between the
+        number of zero crossings and extrema. Depending on whether the difference exceeds a threshold,
+        it either resets or increments a counter. Sifting stops when the counter exceeds stp_cnt.
+
+        Parameters:
+          m (numpy.ndarray): The current mode being processed.
+          t (numpy.ndarray): Time indices.
+          seq (numpy.ndarray): Hammersley sequence for interpolation.
+          ndir (int): Number of directions.
+          stp_cnt (int): Fixed number of iterations to perform.
+          counter (int): Current iteration counter.
+          N (int): Total number of data points.
+          N_dim (int): Signal dimensionality.
+
+        Returns:
+          tuple: (stp, env_mean, counter)
+            stp (bool or int): True if stop condition is met, or 0 if not.
+            env_mean (numpy.ndarray): The computed envelope mean.
+            counter (int): Updated counter value.
+
+        On exception, returns default envelope and stops.
+    """
     try:
         env_mean, nem, nzm, amp = envelope_mean(m, t, seq, ndir, N, N_dim)
         diff = np.abs(nzm - nem)
@@ -116,6 +217,18 @@ def e_diff(prev_imf, curr_imf, t, seq, ndir, N, N_dim, threshold):  # stopping c
 
 
 def zero_crossings(x):
+    """
+        Identifies zero crossings in the input signal.
+
+        A zero crossing occurs when the signal changes sign. This function finds the indices where this occurs.
+        It also handles cases with exact zeros, including blocks of consecutive zeros, by using their midpoint.
+
+        Parameters:
+          x (numpy.ndarray): The input signal.
+
+        Returns:
+          numpy.ndarray: Indices corresponding to zero crossings.
+    """
     izc_detect = np.where(np.diff(np.sign(x)))[0]
 
     if len(izc_detect) == 0:  # early exit if no zero crossing found
@@ -140,6 +253,20 @@ def zero_crossings(x):
 
 
 def local_peaks(signal):
+    """
+        Determines the indices of local minima and maxima in a signal.
+
+        The function computes the derivative (using sign changes) of the signal to identify
+        points where the signal transitions from increasing to decreasing (local maximum) or vice versa.
+
+        Parameters:
+          signal (numpy.ndarray): The input signal.
+
+        Returns:
+          tuple: (indmin, indmax)
+            indmin (numpy.ndarray): Indices of local minima.
+            indmax (numpy.ndarray): Indices of local maxima.
+    """
     def peaks(signal):
         dX = np.sign(np.diff(signal.transpose())).transpose()
         locs_max = np.where((dX[:-1] > 0) & (dX[1:] < 0))[0] + 1
@@ -172,6 +299,27 @@ def local_peaks(signal):
 
 # defines new extrema points to extend the interpolations at the edges of the signal (mainly mirror symmetry)
 def boundary_conditions(indmin, indmax, t, x, z, nbsym):
+    """
+        Computes new extrema points by extending boundaries via mirror symmetry.
+
+        This function determines additional extrema at the signal boundaries to improve
+        the reliability of spline interpolation. The mirror symmetry is applied by reflecting
+        the extrema about the boundary points.
+
+        Parameters:
+          indmin (numpy.ndarray): Indices of local minima.
+          indmax (numpy.ndarray): Indices of local maxima.
+          t (numpy.ndarray): Time indices of the signal.
+          x (numpy.ndarray): The projected signal.
+          z (numpy.ndarray): The original mode signal.
+          nbsym (int): Number of symmetric points to consider.
+
+        Returns:
+          tuple: (tmin, tmax, zmin, zmax, mode)
+            tmin, tmax: Combined time indices for interpolating lower and upper envelopes.
+            zmin, zmax: Interpolated envelope values (minima and maxima).
+            mode (int): Indicator whether the signal has adequate extrema (1) or not (0).
+    """
     lx = len(x) - 1
     end_max = len(indmax) - 1
     end_min = len(indmin) - 1
@@ -266,6 +414,31 @@ def boundary_conditions(indmin, indmax, t, x, z, nbsym):
 
 # computes the mean of the envelopes and the mode amplitude estimate
 def envelope_mean(m, t, seq, ndir, N, N_dim):  # new
+    """
+        Computes the mean envelope and amplitude estimate for a mode.
+
+        For each direction defined in the Hammersley sequence, this function:
+          - Projects the mode signal m onto a unit vector.
+          - Identifies local extrema in the projection.
+          - Applies boundary conditions to extend the extrema for robust spline interpolation.
+          - Computes the upper and lower envelopes via cubic splines.
+          - Accumulates the averaged envelope (mean) and amplitude measure across directions.
+
+        Parameters:
+          m (numpy.ndarray): Mode signal.
+          t (numpy.ndarray): Time indices.
+          seq (numpy.ndarray): Hammersley sequence.
+          ndir (int): Number of directions.
+          N (int): Number of samples.
+          N_dim (int): Number of dimensions/channels.
+
+        Returns:
+          tuple: (env_mean, nem, nzm, amp)
+            env_mean (numpy.ndarray): Mean envelope computed from all directions.
+            nem (numpy.ndarray): Number of extrema detected per direction.
+            nzm (numpy.ndarray): Number of zero crossings per direction.
+            amp (numpy.ndarray): Amplitude estimation based on the envelope differences.
+    """
     NBSYM = 2
     count = 0
 
@@ -328,10 +501,25 @@ def envelope_mean(m, t, seq, ndir, N, N_dim):  # new
         # env_mean.fill(0)
         # amp.fill(0)
         # nem.fill(0)
-    return (env_mean, nem, nzm, amp)
+    return env_mean, nem, nzm, amp
 
 
 def stop_emd(r, seq, ndir, N_dim):
+    """
+        Checks the stopping criterion for the empirical mode decomposition (EMD).
+
+        Projects the residual signal r onto each direction defined by the Hammersley sequence
+        and counts the extrema. If all projections yield less than 3 extrema, the EMD process stops.
+
+        Parameters:
+          r (numpy.ndarray): Residual signal.
+          seq (numpy.ndarray): Hammersley sequence for direction selection.
+          ndir (int): Number of directional projections.
+          N_dim (int): Dimensionality (number of channels) of the signal.
+
+        Returns:
+          bool: True if the stopping condition is met (i.e., fewer than 3 extrema per projection), else False.
+    """
     ner = np.zeros((ndir, 1))
     dir_vec = np.zeros((N_dim, 1))
 
